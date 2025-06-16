@@ -1,82 +1,87 @@
-# Org
+# <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a> SocketRepo
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+---
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
+# 🧠 `apps/server` – Mission Socket Server (NestJS)
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/node?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+The `server` app is a scalable, real-time **NestJS-based** backend that facilitates mission-based command-and-control communication using **Socket.IO**. It enables seamless interaction between **controller clients** and **device clients**, orchestrated through mission-specific rooms with full **type safety** and **ack-based event flows**.
 
-## Finish your CI setup
+---
 
-[Click here to finish setting up your workspace!](https://cloud.nx.app/connect/YgAOgznfq2)
+## 📐 Architecture Overview
 
-
-## Run tasks
-
-To run the dev server for your app, use:
-
-```sh
-npx nx serve server
+```
+apps/
+  server/               # NestJS app extending a shared socket gateway
+libs/
+  socket/               # Shared base gateway for Socket.IO (NestJS)
+  types/                # Event schemas, enums, payload types (shared)
 ```
 
-To create a production bundle:
+---
 
-```sh
-npx nx build server
-```
+## ⚙️ Core Technologies
 
-To see all available targets to run for a project, run:
+- **NestJS** – Modular and extensible backend framework
+- **Socket.IO** – Real-time bidirectional communication
+- **Zod** – Runtime schema validation for socket payloads
+- **TypeScript** – Full-stack type safety
+- **Room-based Routing** – Mission-based scoping of socket interactions
 
-```sh
-npx nx show project server
-```
+---
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 🧩 Main Components
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 🔌 `SocketBaseGateway` (from `@org/socket`)
+Reusable base gateway class that:
+- Wraps `WebSocketGateway` from NestJS
+- Defines common connection lifecycle handlers (`connect`, `disconnect`)
+- Enforces consistent event subscription logic
+- Supports typed sockets and structured ACK patterns (`ackSuccess`, `ackError`)
 
-## Add new projects
+### 🎯 `MissionsSocketGateway` (in `apps/server`)
+Extends the base gateway to:
+- Handle mission room joins with validation
+- Send mission-wide (`SEND_MISSION_COMMAND`) or device-specific (`DEVICE_COMMAND`) commands
+- Emit real-time device status updates to controllers
+- Return live device lists per mission upon join
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+### 📚 Shared Types & Schemas (from `@org/types`)
+- Zod-based schemas for validating all socket payloads
+- Strongly typed event definitions for:
+  - `ClientToServerEvents`
+  - `ServerToClientEvents`
+  - Payload + Acknowledgement contracts
 
-Use the plugin's generator to create new projects.
+---
 
-To generate a new application, use:
+## 📡 Event Highlights
 
-```sh
-npx nx g @nx/node:app demo
-```
+| Event                         | Sender       | Receiver     | Description                                      |
+|------------------------------|--------------|--------------|--------------------------------------------------|
+| `JOIN_MISSION_ROOMS`         | Controller / Device | Server | Joins multiple mission rooms and returns devices |
+| `DEVICE_COMMAND`             | Controller    | Device       | Sends a direct command to a specific device      |
+| `SEND_MISSION_COMMAND`       | Controller    | All devices in mission | Broadcasts a command to all devices in a mission |
+| `DEVICE_STATUS_UPDATE`       | Device        | Controllers  | Sends real-time device status to relevant rooms  |
+| `DEVICE_JOINED_MISSION`      | Server        | Controllers  | Notifies when a device joins a mission room      |
 
-To generate a new library, use:
+---
 
-```sh
-npx nx g @nx/node:lib mylib
-```
+## 🛡 Type Safety & Validation
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+All events are strictly validated on the server using Zod. Clients must adhere to schema-defined payloads, ensuring robust and predictable communication across the stack.
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+---
 
+## 🚀 Example Workflow
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+1. A **device** connects with a `deviceId` and joins multiple mission rooms.
+2. A **controller** joins the same mission rooms and receives a list of connected devices.
+3. The controller sends a `DEVICE_COMMAND` to a specific device, or `SEND_MISSION_COMMAND` to all devices in the room.
+4. Devices respond or update their status, which gets pushed back to all controllers in that mission room.
 
-## Install Nx Console
+---
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/node?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+For detailed socket types and validation schemas, see:
+- [`libs/types`](../../libs/types)
+- [`libs/socket`](../../libs/socket)
