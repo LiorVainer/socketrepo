@@ -24,7 +24,14 @@
           "buildDepsName": "build-deps",
           "watchDepsName": "watch-deps"
         }
-      }
+      },
+      "exclude": [
+        "socket/*",
+        "libs/socket/*",
+        "libs/*",
+        "libs/types/*",
+        "libs/socket-client/*"
+      ]
     },
     {
       "plugin": "@nx/webpack/plugin",
@@ -41,6 +48,59 @@
       "options": {
         "targetName": "lint"
       }
+    },
+    {
+      "plugin": "@nx/react/router-plugin",
+      "options": {
+        "buildTargetName": "build",
+        "devTargetName": "dev",
+        "startTargetName": "start",
+        "watchDepsTargetName": "watch-deps",
+        "buildDepsTargetName": "build-deps",
+        "typecheckTargetName": "typecheck"
+      }
+    },
+    {
+      "plugin": "@nx/rspack/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
+    },
+    {
+      "plugin": "@nx/js/typescript",
+      "include": [
+        "socket/*",
+        "libs/socket/*",
+        "libs/*",
+        "libs/types/*",
+        "libs/socket-client/*"
+      ],
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        }
+      }
     }
-  ]
+  ],
+  "generators": {
+    "@nx/react": {
+      "application": {
+        "babel": true,
+        "style": "tailwind",
+        "linter": "eslint",
+        "bundler": "rspack"
+      },
+      "component": {
+        "style": "tailwind"
+      },
+      "library": {
+        "style": "tailwind",
+        "linter": "eslint"
+      }
+    }
+  }
 }

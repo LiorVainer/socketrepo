@@ -1,5 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
   "files": [],
   "include": [],
   "references": [
@@ -7,10 +6,8 @@
       "path": "../../libs/types"
     },
     {
-      "path": "../../libs/socket"
-    },
-    {
       "path": "./tsconfig.app.json"
     }
-  ]
+  ],
+  "extends": "../../tsconfig.base.json"
 }
