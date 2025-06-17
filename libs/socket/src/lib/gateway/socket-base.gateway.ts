@@ -6,7 +6,6 @@ import {
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { PingAckPayload, PingSchema, TypedSocket } from '../types';
-import { SocketRegistry } from '../registry/socket.store';
 import { type Ack, ackError, ackSuccess } from '../helpers/ack.utils';
 
 @WebSocketGateway({ namespace: '/socket', cors: { origin: '*' } })
@@ -17,8 +16,6 @@ export class SocketBaseGateway<
 > {
   @WebSocketServer()
   protected server!: Server<CTS, STC, Record<string, any>, D>;
-
-  protected registry = new SocketRegistry<CTS, STC, D>();
 
   handleConnection(client: TypedSocket<CTS, STC, D>) {
     console.log(`[Socket] Client connected: ${client.id}`);

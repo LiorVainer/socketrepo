@@ -30,11 +30,12 @@ export class MissionsSocketGateway extends SocketBaseGateway<
   ServerToClientEvents,
   MissionSocketHandshakeQuery
 > {
+  private deviceMissionsMap = new Map<string, Set<string>>();
+
   @SubscribeMessage(MissionSocketEvents.DEVICE_COMMAND)
   async handleDeviceCommand(
     @MessageBody() rawPayload: unknown,
-    @ConnectedSocket()
-    client: MissionsSocket
+    @ConnectedSocket() client: MissionsSocket
   ): Promise<Ack<DeviceCommandAckPayload>> {
     const result = DeviceCommandSchema.safeParse(rawPayload);
     if (!result.success) {
@@ -43,16 +44,22 @@ export class MissionsSocketGateway extends SocketBaseGateway<
 
     const { missionId, deviceId, command, from } = result.data;
 
-    const room = this.getMissionRoom(missionId);
-    const deviceSocket = this.server.sockets.adapter.rooms
-      .get(room)
-      ?.has(deviceId);
+    const missionRoom = this.getMissionRoom(missionId);
 
-    if (!deviceSocket) {
+    // Verify the device is in the mission room first (optional but good practice)
+    const socketsInMissionRoom = await this.server
+      .in(missionRoom)
+      .fetchSockets();
+
+    const isDeviceInMissionRoom = socketsInMissionRoom.some(
+      (s) => s.data.clientType === 'device' && s.data.deviceId === deviceId
+    );
+
+    if (!isDeviceInMissionRoom) {
       return ackError(`Device ${deviceId} not found in mission ${missionId}`);
     }
 
-    // Send event to device
+    // Send event to the device's personal room (which is named after its deviceId)
     this.server.to(deviceId).emit(MissionSocketEvents.DEVICE_COMMAND, {
       missionId,
       deviceId,
@@ -109,7 +116,13 @@ export class MissionsSocketGateway extends SocketBaseGateway<
       await client.join(room);
       joined.push(missionId);
 
-      // Get all sockets in the mission room
+      if (isDeviceSocket(client)) {
+        if (!this.deviceMissionsMap.has(client.data.deviceId)) {
+          this.deviceMissionsMap.set(client.data.deviceId, new Set());
+        }
+
+        this.deviceMissionsMap.get(client.data.deviceId)?.add(missionId);
+      }
       const socketsInRoom = await this.server.in(room).fetchSockets();
 
       // Filter only device clients in that room
@@ -170,7 +183,10 @@ export class MissionsSocketGateway extends SocketBaseGateway<
 
     if (deviceId) {
       client.data = { clientType: 'device', deviceId };
-      console.log(`[Device] ${deviceId} connected`);
+      client.join(deviceId);
+      console.log(
+        `[Device] ${deviceId} connected, joined personal room ${deviceId}`
+      );
     } else {
       client.data = { clientType: 'role', role: 'admin' };
       console.log(`[Controller] ${client.id} connected`);
@@ -178,6 +194,28 @@ export class MissionsSocketGateway extends SocketBaseGateway<
   }
 
   override handleDisconnect(client: MissionsSocket) {
+    // If the disconnected client was a device
+    if (isDeviceSocket(client) && client.data.deviceId) {
+      const deviceId = client.data.deviceId;
+      const missionsOfDevice = this.deviceMissionsMap.get(deviceId);
+
+      if (missionsOfDevice) {
+        for (const missionId of missionsOfDevice) {
+          const room = this.getMissionRoom(missionId);
+          // Emit to the specific mission room that this device disconnected
+          this.server.to(room).emit(MissionSocketEvents.DEVICE_LEFT_MISSION, {
+            missionId,
+            deviceId,
+          });
+          console.log(
+            `Device ${deviceId} disconnected from mission ${missionId}. Notifying room ${room}.`
+          );
+        }
+        // Clean up the mapping for the disconnected device
+        this.deviceMissionsMap.delete(deviceId);
+      }
+    }
+
     console.log(`Client ${client.id} disconnected:`, client.data);
   }
 }

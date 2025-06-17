@@ -14,7 +14,9 @@ export const DeviceStatusUpdateSchema = z.object({
   status: z.string().min(1),
   timestamp: z.number().int().positive(),
 });
-export type DeviceStatusUpdatePayload = z.infer<typeof DeviceStatusUpdateSchema>;
+export type DeviceStatusUpdatePayload = z.infer<
+  typeof DeviceStatusUpdateSchema
+>;
 
 export const JoinMissionRoomsSchema = z.object({
   missions: z.array(z.string().min(1)).min(1),
@@ -26,11 +28,24 @@ export const SendMissionCommandSchema = z.object({
   command: z.string().min(1),
   from: z.string().optional(),
 });
-export type SendMissionCommandPayload = z.infer<typeof SendMissionCommandSchema>;
+export type SendMissionCommandPayload = z.infer<
+  typeof SendMissionCommandSchema
+>;
 
 export const DeviceJoinedMissionPayloadSchema = z.object({
   missionId: z.string().min(1),
   deviceId: z.string().min(1),
 });
 
-export type DeviceJoinedMissionPayload = z.infer<typeof DeviceJoinedMissionPayloadSchema>;
+export type DeviceJoinedMissionPayload = z.infer<
+  typeof DeviceJoinedMissionPayloadSchema
+>;
+
+export const DeviceLeftMissionPayloadSchema = z.object({
+  missionId: z.string().min(1),
+  deviceId: z.string().min(1),
+});
+
+export type DeviceLeftMissionPayload = z.infer<
+  typeof DeviceLeftMissionPayloadSchema
+>;
